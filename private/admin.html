@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin | Dr. Mange’s Dental Solution</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#f4f8f7;color:#12302f}
+.w{max-width:1100px;margin:0 auto;padding:20px}h1{font-size:1.4rem}
+.tabs button{background:none;border:0;color:#0e6b66;font:700 1rem inherit;margin-right:12px;cursor:pointer;padding:4px 0}
+.tabs button.on{text-decoration:underline}
+.t{overflow-x:auto;background:#fff;border:1px solid #cfe3df;border-radius:12px;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #e3efec;vertical-align:top}
+.act button{background:#0e6b66;color:#fff;border:0;border-radius:8px;padding:6px 12px;margin:2px;cursor:pointer}
+.act .c{background:#e0634d}.act .d{background:#6b7f7d}
+.pending{color:#b7791f}.confirmed{color:#0e6b66}.cancelled{color:#c0392b}
+</style></head><body><div class="w">
+<h1>Appointments</h1>
+<div class="tabs" id="tabs"></div>
+<div class="t"><table><thead><tr><th>Patient</th><th>Mobile</th><th>Treatment</th><th>Date</th><th>Time</th><th>Note</th><th>Status</th><th>Action</th></tr></thead>
+<tbody id="rows"></tbody></table></div></div>
+<script>
+var f='all',tabs={all:'All',today:'Today',pending:'Pending',confirmed:'Confirmed',cancelled:'Cancelled'};
+var T=document.getElementById('tabs'),R=document.getElementById('rows');
+Object.keys(tabs).forEach(function(k){var b=document.createElement('button');b.textContent=tabs[k];b.dataset.k=k;
+  b.onclick=function(){f=k;load();};T.appendChild(b);});
+function td(tr,t,cls){var c=document.createElement('td');c.textContent=t;if(cls)c.className=cls;tr.appendChild(c);return c;}
+function call(m,id,body){return fetch('/api/admin/appointments/'+id,{method:m,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined})
+  .then(function(r){return r.json();}).then(function(j){if(!j.ok)alert(j.error||'Action failed');load();});}
+function load(){
+  [].forEach.call(T.children,function(b){b.className=b.dataset.k===f?'on':'';});
+  fetch('/api/admin/appointments?f='+f).then(function(r){return r.json();}).then(function(rows){
+    R.innerHTML='';
+    if(!rows.length){var tr=document.createElement('tr');var c=td(tr,'No appointments.');c.colSpan=8;R.appendChild(tr);return;}
+    rows.forEach(function(a){
+      var tr=document.createElement('tr');
+      td(tr,a.name);td(tr,a.phone);td(tr,a.service);td(tr,a.date);td(tr,a.time);td(tr,a.message||'');td(tr,a.status,a.status);
+      var c=document.createElement('td');c.className='act';
+      [['Confirm','','confirmed'],['Cancel','c','cancelled'],['Delete','d','']].forEach(function(x){
+        var b=document.createElement('button');b.textContent=x[0];b.className=x[1];
+        b.onclick=function(){if(x[2])call('PATCH',a._id,{status:x[2]});else if(confirm('Delete this appointment?'))call('DELETE',a._id);};
+        c.appendChild(b);});
+      tr.appendChild(c);R.appendChild(tr);
+    });
+  });
+}
+load();
+</script></body></html>
